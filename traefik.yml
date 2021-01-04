@@ -1,0 +1,40 @@
+version: '3.7'
+
+services:
+  traefik:
+    image: traefik
+    deploy:
+      update_config:
+        order: start-first
+        failure_action: rollback
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.traefik.rule=Host(`venus.joostlek.dev`)"
+        - "traefik.http.routers.traefik.service=api@internal"
+        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+        - "traefik.http.services.traefik.loadbalancer.passhostheader=true"
+        - "traefik.http.routers.traefik.entrypoints=websecure"
+        - "traefik.http.routers.traefik.tls=true"
+        - "traefik.http.routers.traefik.tls.certresolver=le"
+        - "traefik.http.services.dummy-svc.loadbalancer.server.port=9999"
+      placement:
+        constraints: [node.role == manager]
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    networks:
+      - traefik-net
+    volumes:
+      - "./acme.json:/acme.json"
+      - "./traefik.toml:/etc/traefik/traefik.toml"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+networks:
+  traefik-net:
+    external: true
